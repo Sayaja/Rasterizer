@@ -23,9 +23,12 @@ float focalLength = SCREEN_WIDTH;
 vec3 cameraPos( 0, 0, -3.001 );
 vec3 currentNormal; // Normal of current triangle
 vec3 currentReflectance; // Reflectance of current triangle
-float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Depth for each pixel
-vec3 lightPos(0,-0.5,-0.7); // Light source position
-vec3 lightPower = 14.1f * vec3(1,1,1);
+float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth for each pixel
+float lightBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth from light source for each pixel
+// vec3 lightPos(0,-0.5,-0.7); // Light source position
+// vec3 lightPower = 14.1f * vec3(1,1,1);
+vec3 lightPos(0,0,-3.001);
+vec3 lightPower = 70.1f * vec3(1,1,1);
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 ); // Set indirect light to constant
 struct Pixel { // Information about a pixel
 int x;
@@ -76,10 +79,17 @@ int main( int argc, char* argv[] )
 
 void VertexShader(const Vertex& v, Pixel& p) { // Transform vertex from 3d -> 2d
 	vec3 P = (v.position - cameraPos) * R;
+	//vec3 P2 = (v.position - lightPos) * R;
 	p.pos3d = v.position;
 	p.zinv = 1.0f / P.z;
 	p.x = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
 	p.y = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2);
+	// float lightDepth = 1 / (sqrt(P2[0]*P2[0] + P2[1]*P2[1] + P2[2]*P2[2])); // Inversed
+	// int xLight = ((focalLength * P2.x) / P2.z) + (SCREEN_WIDTH / 2);
+	// int yLight = ((focalLength * P2.y) / P2.z) + (SCREEN_WIDTH / 2);
+	// if (lightDepth > lightBuffer[xLight][yLight]) {
+	// 	lightBuffer[xLight][yLight] = lightDepth;
+	// }
 }
 
 void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result) { // Interolate ivec2
@@ -241,22 +251,35 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 
 				//rowPos3d[j-leftPixels[i].x] = rowPos3d[j-leftPixels[i].x] * rowZInv[j-leftPixels[i].x];
 
-				// Calculate the illumination
-				vec3 r = lightPos - rowPos3d[j-leftPixels[i].x];
-				float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
-				r = r / rad;
-				float temp = dot(r, currentNormal);
-				if (temp < 0)
-				{
-					temp = 0;
-				}
-				vec3 D;
-				D[0] = lightPower[0] * (temp / (4 * 3.14*rad*rad));
-				D[1] = lightPower[1] * (temp / (4 * 3.14*rad*rad));
-				D[2] = lightPower[2] * (temp / (4 * 3.14*rad*rad));
-				vec3 illumination = currentReflectance * (D + indirectLightPowerPerArea);
+				vec3 P = (rowPos3d[j-leftPixels[i].x] - lightPos) * R;
+				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
+				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
+				float lightDepth = 1 / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
-				PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+				if (lightDepth >= lightBuffer[xLight][yLight]) {
+					lightBuffer[xLight][yLight] = lightDepth;
+
+					// Calculate the illumination
+					vec3 r = lightPos - rowPos3d[j-leftPixels[i].x];
+					float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
+					r = r / rad;
+					float temp = dot(r, currentNormal);
+					if (temp < 0)
+					{
+						temp = 0;
+					}
+					vec3 D;
+					D[0] = lightPower[0] * (temp / (4 * 3.14*rad*rad));
+					D[1] = lightPower[1] * (temp / (4 * 3.14*rad*rad));
+					D[2] = lightPower[2] * (temp / (4 * 3.14*rad*rad));
+					vec3 illumination = currentReflectance * (D + indirectLightPowerPerArea);
+
+					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+				} else {
+					//cout << "shadow" << endl;
+					vec3 illumination(0,0,0);
+					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+				}
 			}
 		}
 	}
@@ -354,6 +377,7 @@ void Draw()
 	for( int y=0; y<SCREEN_HEIGHT; ++y ) {
 		for( int x=0; x<SCREEN_WIDTH; ++x ) {
 			depthBuffer[y][x] = 0;
+			lightBuffer[y][x] = 0;
 		}
 	}
 
