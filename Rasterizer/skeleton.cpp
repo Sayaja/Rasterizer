@@ -236,12 +236,8 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 		vector<float> rowZInv((rightPixels[i].x - leftPixels[i].x) + 1);
 		vector<vec3> rowPos3d((rightPixels[i].x - leftPixels[i].x) + 1);
 
-		// leftPixels[i].pos3d.x = 1.0f / leftPixels[i].pos3d.x;
-		// leftPixels[i].pos3d.y = 1.0f / leftPixels[i].pos3d.y;;
-		// leftPixels[i].pos3d.z = 1.0f / leftPixels[i].pos3d.z;;
-		// rightPixels[i].pos3d.x = 1.0f / rightPixels[i].pos3d.x;
-		// rightPixels[i].pos3d.y = 1.0f / rightPixels[i].pos3d.y;
-		// rightPixels[i].pos3d.z = 1.0f / rightPixels[i].pos3d.z;
+		//leftPixels[i].pos3d = leftPixels[i].pos3d / leftPixels[i].zinv;
+		//rightPixels[i].pos3d = rightPixels[i].pos3d / rightPixels[i].zinv;
 
 		InterpolateFloat(leftPixels[i].zinv, rightPixels[i].zinv, rowZInv); // Only interpolate zinv for faster rendering
 		InterpolateGLM(leftPixels[i].pos3d, rightPixels[i].pos3d, rowPos3d); // Interpolate 3d position
@@ -256,7 +252,13 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
 				float lightDepth = 1 / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
-				if (lightDepth >= lightBuffer[xLight][yLight]) {
+				if ((lightDepth - 0.001) >= lightBuffer[xLight][yLight] && lightBuffer[xLight][yLight] > 0.001) {
+					//cout << "shadow" << endl;
+					lightBuffer[xLight][yLight] = lightDepth;
+					vec3 illumination(0,0,0);
+					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+				}
+				else if ((lightDepth + 0.001) >= lightBuffer[xLight][yLight] && lightBuffer[xLight][yLight] <= 0.001) {
 					lightBuffer[xLight][yLight] = lightDepth;
 
 					// Calculate the illumination
@@ -275,8 +277,10 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 					vec3 illumination = currentReflectance * (D + indirectLightPowerPerArea);
 
 					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
-				} else {
+				}
+				else {
 					//cout << "shadow" << endl;
+					lightBuffer[xLight][yLight] = lightDepth;
 					vec3 illumination(0,0,0);
 					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
