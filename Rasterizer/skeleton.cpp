@@ -20,15 +20,15 @@ float yaw; // Rotation angle
 mat3 R; // Rotation matrix
 vector<Triangle> triangles;
 float focalLength = SCREEN_WIDTH;
-vec3 cameraPos( 0, 0, -3.001 );
+vec3 cameraPos( 0.0f, 0.0f, -3.001f );
 vec3 currentNormal; // Normal of current triangle
 vec3 currentReflectance; // Reflectance of current triangle
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth for each pixel
 float lightBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth from light source for each pixel
 // vec3 lightPos(0,-0.5,-0.7); // Light source position
 // vec3 lightPower = 14.1f * vec3(1,1,1);
-vec3 lightPos(0,0,-3.001);
-vec3 lightPower = 70.1f * vec3(1,1,1);
+vec3 lightPos(2.0f,0.0f,-6.001f);
+vec3 lightPower = 200.1f * vec3(1,1,1);
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 ); // Set indirect light to constant
 struct Pixel { // Information about a pixel
 int x;
@@ -50,6 +50,7 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result);
 void InterpolateGLM(vec3 a, vec3 b, vector<vec3>& resultGLM);
 void ComputePolygonRows(const vector<Pixel>& vertexPixels,vector<Pixel>& leftPixels,
 vector<Pixel>& rightPixels);
+void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels);
 void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels);
 void DrawPolygon(const vector<vec3>& vertices);
 void Update();
@@ -206,8 +207,8 @@ vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy
 
 	for (int i=0;i<vertexPixels.size();++i) { // Loop through every edge of the polygon
 		int l = (i+1)%vertexPixels.size(); // The next vertex
-		float deltaX = glm::abs( vertexPixels[i].x - vertexPixels[l].x );
-		float deltaY = glm::abs( vertexPixels[i].y - vertexPixels[l].y );
+		int deltaX = glm::abs( vertexPixels[i].x - vertexPixels[l].x );
+		int deltaY = glm::abs( vertexPixels[i].y - vertexPixels[l].y );
 		int pixels = glm::max( deltaX, deltaY ) + 1; // Amount of values in the interpolation
 		vector<Pixel> line( pixels );
 		InterpolatePixel(vertexPixels[i], vertexPixels[l], line);
@@ -231,7 +232,7 @@ vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy
 	}
 }
 
-void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
+void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 	for (int i=0;i<leftPixels.size();++i) { // For every row
 		vector<float> rowZInv((rightPixels[i].x - leftPixels[i].x) + 1);
 		vector<vec3> rowPos3d((rightPixels[i].x - leftPixels[i].x) + 1);
@@ -250,17 +251,38 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 				vec3 P = (rowPos3d[j-leftPixels[i].x] - lightPos) * R;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
-				float lightDepth = 1 / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
+				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
-				if ((lightDepth - 0.001) >= lightBuffer[xLight][yLight] && lightBuffer[xLight][yLight] > 0.001) {
-					//cout << "shadow" << endl;
+				if (lightDepth > lightBuffer[xLight][yLight]) {
 					lightBuffer[xLight][yLight] = lightDepth;
-					vec3 illumination(0,0,0);
-					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
-				else if ((lightDepth + 0.001) >= lightBuffer[xLight][yLight] && lightBuffer[xLight][yLight] <= 0.001) {
-					lightBuffer[xLight][yLight] = lightDepth;
+			}
+		}
+	}
+}
 
+void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
+	for (int i=0;i<leftPixels.size();++i) { // For every row
+		vector<float> rowZInv((rightPixels[i].x - leftPixels[i].x) + 1);
+		vector<vec3> rowPos3d((rightPixels[i].x - leftPixels[i].x) + 1);
+
+		//leftPixels[i].pos3d = leftPixels[i].pos3d / leftPixels[i].zinv;
+		//rightPixels[i].pos3d = rightPixels[i].pos3d / rightPixels[i].zinv;
+
+		InterpolateFloat(leftPixels[i].zinv, rightPixels[i].zinv, rowZInv); // Only interpolate zinv for faster rendering
+		InterpolateGLM(leftPixels[i].pos3d, rightPixels[i].pos3d, rowPos3d); // Interpolate 3d position
+		for (int j=leftPixels[i].x; j <= rightPixels[i].x; ++j) { // For every pixel in the row
+			if (rowZInv[j-leftPixels[i].x] >= depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
+				depthBuffer[j][leftPixels[i].y] = rowZInv[j-leftPixels[i].x];
+
+				//rowPos3d[j-leftPixels[i].x] = rowPos3d[j-leftPixels[i].x] * rowZInv[j-leftPixels[i].x];
+
+				vec3 P = (rowPos3d[j-leftPixels[i].x] - lightPos) * R;
+				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
+				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
+				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
+
+				if ((lightDepth + 0.005) >= lightBuffer[xLight][yLight]) {
 					// Calculate the illumination
 					vec3 r = lightPos - rowPos3d[j-leftPixels[i].x];
 					float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
@@ -279,11 +301,42 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
 				else {
-					//cout << "shadow" << endl;
-					lightBuffer[xLight][yLight] = lightDepth;
 					vec3 illumination(0,0,0);
 					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
+
+				// if ((lightDepth - 0.001) >= lightBuffer[xLight][yLight] && lightBuffer[xLight][yLight] > 0.001) {
+				// 	//cout << "shadow" << endl;
+				// 	lightBuffer[xLight][yLight] = lightDepth;
+				// 	vec3 illumination(0,0,0);
+				// 	PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+				// }
+				// else if ((lightDepth + 0.001) >= lightBuffer[xLight][yLight] && lightBuffer[xLight][yLight] <= 0.001) {
+				// 	lightBuffer[xLight][yLight] = lightDepth;
+				//
+				// 	// Calculate the illumination
+				// 	vec3 r = lightPos - rowPos3d[j-leftPixels[i].x];
+				// 	float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
+				// 	r = r / rad;
+				// 	float temp = dot(r, currentNormal);
+				// 	if (temp < 0)
+				// 	{
+				// 		temp = 0;
+				// 	}
+				// 	vec3 D;
+				// 	D[0] = lightPower[0] * (temp / (4 * 3.14*rad*rad));
+				// 	D[1] = lightPower[1] * (temp / (4 * 3.14*rad*rad));
+				// 	D[2] = lightPower[2] * (temp / (4 * 3.14*rad*rad));
+				// 	vec3 illumination = currentReflectance * (D + indirectLightPowerPerArea);
+				//
+				// 	PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+				// }
+				// else {
+				// 	//cout << "shadow" << endl;
+				// 	lightBuffer[xLight][yLight] = lightDepth;
+				// 	vec3 illumination(0,0,0);
+				// 	PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+				// }
 			}
 		}
 	}
@@ -299,6 +352,7 @@ void DrawPolygon(const vector<Vertex>& vertices) {
 	vector<Pixel> leftPixels;
 	vector<Pixel> rightPixels;
 	ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
+	ShadowMapping(leftPixels, rightPixels);
 	DrawPolygonRows( leftPixels, rightPixels );
 }
 

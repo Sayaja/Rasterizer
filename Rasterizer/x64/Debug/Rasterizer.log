@@ -1,27 +1,26 @@
 ﻿  skeleton.cpp
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(85): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
 c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(86): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(97): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(101): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(103): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(105): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(108): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(87): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(98): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(102): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(104): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(106): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
 c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(109): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(123): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(127): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(129): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(131): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(142): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(110): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(124): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(128): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(130): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(132): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
 c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(143): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(153): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(209): warning C4244: 'initializing': conversion from 'glm::int32' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(210): warning C4244: 'initializing': conversion from 'glm::int32' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(211): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(251): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(144): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(154): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
 c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(252): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(274): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(275): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(276): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(294): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(253): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(281): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(282): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(296): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(297): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(298): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\axel_\onedrive\skrivbord\grafik\rasterizer\rasterizer\skeleton.cpp(347): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
   Rasterizer.vcxproj -> C:\Users\axel_\OneDrive\Skrivbord\Grafik\Rasterizer\x64\Debug\Rasterizer.exe
   Rasterizer.vcxproj -> C:\Users\axel_\OneDrive\Skrivbord\Grafik\Rasterizer\x64\Debug\Rasterizer.pdb (Partial PDB)
