@@ -40,7 +40,7 @@ vec3 position;
 // ----------------------------------------------------------------------------
 // FUNCTIONS
 
-void VertexShader(const vec3& v, Pixel& p);
+void VertexShader(vector<Vertex>& vertices, vector<Pixel>& vertexPixels);
 void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result);
 void InterpolateFloat(float a, float b, vector<float>& result);
 void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result);
@@ -48,7 +48,7 @@ void InterpolateGLM(vec3 a, vec3 b, vector<vec3>& resultGLM);
 void ComputePolygonRows(const vector<Pixel>& vertexPixels,vector<Pixel>& leftPixels,
 vector<Pixel>& rightPixels);
 void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels);
-void DrawPolygon(const vector<vec3>& vertices);
+void DrawPolygon(vector<Vertex>& vertices);
 void Update();
 void Draw();
 
@@ -74,12 +74,65 @@ int main( int argc, char* argv[] )
 	return 0;
 }
 
-void VertexShader(const Vertex& v, Pixel& p) { // Transform vertex from 3d -> 2d
-	vec3 P = (v.position - cameraPos) * R;
-	p.pos3d = v.position;
-	p.zinv = 1.0f / P.z;
-	p.x = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
-	p.y = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2);
+void VertexShader(vector<Vertex>& vertices, vector<Pixel>& vertexPixels) {
+	for (int i=0; i<vertices.size(); ++i) { // Calculate 2d positions
+		vec3 P = (vertices[i].position - cameraPos) * R;
+		vertexPixels[i].pos3d = vertices[i].position;
+		vertexPixels[i].zinv = 1.0f / P.z;
+		vertexPixels[i].x = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
+		vertexPixels[i].y = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2);
+	}
+
+	vector<Pixel> inside; // Pixels inside screen
+	vector<Pixel> outside; // Pixels outside screen
+	for (int i=0; i<vertexPixels.size(); ++i) {
+		if (vertexPixels[i].x > SCREEN_WIDTH-1 || vertexPixels[i].x < 0 || vertexPixels[i].y > SCREEN_HEIGHT-1 || vertexPixels[i].y < 0) {
+			outside.push_back(vertexPixels[i]);
+		} else {
+			inside.push_back(vertexPixels[i]);
+		}
+	}
+
+	int numOutside = outside.size();
+	if (numOutside == 0) { // All vertices inside screen
+		// Do nothing
+	} else if (numOutside == 1) { // One vertex outside screen
+		for (int i=0; i<2; ++i) {
+			vertexPixels.resize(4);
+			int deltaX = glm::abs( outside[0].x - inside[i].x );
+			int deltaY = glm::abs( outside[0].y - inside[i].y );
+			int steps = glm::max( deltaX, deltaY ) + 1; // Amount of values in the interpolation
+			vector<Pixel> line( steps );
+			InterpolatePixel(outside[0], inside[i], line);
+			for (int j=0; j<line.size(); ++j) {
+				if (line[j].x <= SCREEN_WIDTH-1 && line[j].x >= 0 && line[j].y <= SCREEN_HEIGHT-1 && line[j].y >= 0) {
+					vertexPixels[i] = line[j];
+					break;
+				}
+			}
+		}
+		vertexPixels[2] = inside[0];
+		vertexPixels[3] = inside[1];
+
+	} else if (numOutside == 2) { // Two vertices outside screen
+		for (int i=0; i<2; ++i) {
+			int deltaX = glm::abs( outside[i].x - inside[0].x );
+			int deltaY = glm::abs( outside[i].y - inside[0].y );
+			int steps = glm::max( deltaX, deltaY ) + 1; // Amount of values in the interpolation
+			vector<Pixel> line( steps );
+			InterpolatePixel(outside[i], inside[0], line);
+			for (int j=0; j<line.size(); ++j) {
+				if (line[j].x <= SCREEN_WIDTH-1 && line[j].x >= 0 && line[j].y <= SCREEN_HEIGHT-1 && line[j].y >= 0) {
+					vertexPixels[i] = line[j];
+					break;
+				}
+			}
+		}
+		vertexPixels[2] = inside[0];
+
+	} else if (numOutside == 3) { // All vertices outside screen
+		vertexPixels.resize(1);
+	}
 }
 
 void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result) { // Interolate ivec2
@@ -256,16 +309,15 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 }
 
 // Combine all functions to draw the complete polygon
-void DrawPolygon(const vector<Vertex>& vertices) {
-	int V = vertices.size();
-	vector<Pixel> vertexPixels( V );
-	for( int i=0; i<V; ++i ) {
-		VertexShader( vertices[i], vertexPixels[i] );
+void DrawPolygon(vector<Vertex>& vertices) {
+	vector<Pixel> vertexPixels(vertices.size());
+	VertexShader(vertices, vertexPixels);
+	if (3 <= vertexPixels.size()) {
+		vector<Pixel> leftPixels;
+		vector<Pixel> rightPixels;
+		ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
+		DrawPolygonRows( leftPixels, rightPixels );
 	}
-	vector<Pixel> leftPixels;
-	vector<Pixel> rightPixels;
-	ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
-	DrawPolygonRows( leftPixels, rightPixels );
 }
 
 void Update()
@@ -305,6 +357,19 @@ void Update()
 		R[1][0] = 0; R[1][1] = 1; R[1][2] = 0;
 		R[2][0] = -sin(yaw); R[2][1] = 0; R[2][2] = cos(yaw);
 	}
+
+	if (keystate[SDLK_z]) {
+		//move camera left
+		vec3 temp(-0.2, 0, 0);
+		cameraPos = cameraPos + R * temp;
+	}
+
+	if (keystate[SDLK_x]) {
+		//move camera right
+		vec3 temp(0.2, 0, 0);
+		cameraPos = cameraPos + R * temp;
+	}
+
 
 	if( keystate[SDLK_w] ) {
 		vec3 tempVec(0, 0, 0.2);
