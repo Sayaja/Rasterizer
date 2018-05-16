@@ -127,6 +127,10 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate 
 	} else {
 		temp = N - 1;
 	}
+
+	a.pos3d = a.pos3d * a.zinv; // Perspective correct interpolation
+	b.pos3d = b.pos3d * b.zinv;
+
 	float diff0 = b.x - a.x;
 	float step0 = diff0 / temp;
 	float diff1 = b.y - a.y;
@@ -143,9 +147,9 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate 
 		result[i].x = a.x + i * step0;
 		result[i].y = a.y + i * step1;
 		result[i].zinv = a.zinv + i * step2;
-		result[i].pos3d[0] = a.pos3d[0] + i * step3;
-		result[i].pos3d[1] = a.pos3d[1] + i * step4;
-		result[i].pos3d[2] = a.pos3d[2] + i * step5;
+		result[i].pos3d[0] = (a.pos3d[0] + i * step3) / result[i].zinv;
+		result[i].pos3d[1] = (a.pos3d[1] + i * step4) / result[i].zinv;
+		result[i].pos3d[2] = (a.pos3d[2] + i * step5) / result[i].zinv;
 	}
 }
 
@@ -234,21 +238,14 @@ vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy
 
 void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 	for (int i=0;i<leftPixels.size();++i) { // For every row
-		vector<float> rowZInv((rightPixels[i].x - leftPixels[i].x) + 1);
-		vector<vec3> rowPos3d((rightPixels[i].x - leftPixels[i].x) + 1);
+		vector<Pixel> row((rightPixels[i].x - leftPixels[i].x) + 1);
 
-		//leftPixels[i].pos3d = leftPixels[i].pos3d / leftPixels[i].zinv;
-		//rightPixels[i].pos3d = rightPixels[i].pos3d / rightPixels[i].zinv;
-
-		InterpolateFloat(leftPixels[i].zinv, rightPixels[i].zinv, rowZInv); // Only interpolate zinv for faster rendering
-		InterpolateGLM(leftPixels[i].pos3d, rightPixels[i].pos3d, rowPos3d); // Interpolate 3d position
+		InterpolatePixel(leftPixels[i], rightPixels[i], row); // Interpolate over the row
 		for (int j=leftPixels[i].x; j <= rightPixels[i].x; ++j) { // For every pixel in the row
-			if (rowZInv[j-leftPixels[i].x] > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
-				depthBuffer[j][leftPixels[i].y] = rowZInv[j-leftPixels[i].x];
+			if (row[j-leftPixels[i].x].zinv > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
+				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
-				//rowPos3d[j-leftPixels[i].x] = rowPos3d[j-leftPixels[i].x] * rowZInv[j-leftPixels[i].x];
-
-				vec3 P = (rowPos3d[j-leftPixels[i].x] - lightPos) * R;
+				vec3 P = (row[j-leftPixels[i].x].pos3d - lightPos) * R;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
@@ -263,28 +260,22 @@ void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 
 void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 	for (int i=0;i<leftPixels.size();++i) { // For every row
-		vector<float> rowZInv((rightPixels[i].x - leftPixels[i].x) + 1);
-		vector<vec3> rowPos3d((rightPixels[i].x - leftPixels[i].x) + 1);
+		vector<Pixel> row((rightPixels[i].x - leftPixels[i].x) + 1);
 
-		//leftPixels[i].pos3d = leftPixels[i].pos3d / leftPixels[i].zinv;
-		//rightPixels[i].pos3d = rightPixels[i].pos3d / rightPixels[i].zinv;
-
-		InterpolateFloat(leftPixels[i].zinv, rightPixels[i].zinv, rowZInv); // Only interpolate zinv for faster rendering
-		InterpolateGLM(leftPixels[i].pos3d, rightPixels[i].pos3d, rowPos3d); // Interpolate 3d position
+		InterpolatePixel(leftPixels[i], rightPixels[i], row); // Interpolate over the row
 		for (int j=leftPixels[i].x; j <= rightPixels[i].x; ++j) { // For every pixel in the row
-			if (rowZInv[j-leftPixels[i].x] >= depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
-				depthBuffer[j][leftPixels[i].y] = rowZInv[j-leftPixels[i].x];
+			if (row[j-leftPixels[i].x].zinv >= depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
+				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
-				//rowPos3d[j-leftPixels[i].x] = rowPos3d[j-leftPixels[i].x] * rowZInv[j-leftPixels[i].x];
-
-				vec3 P = (rowPos3d[j-leftPixels[i].x] - lightPos) * R;
+				vec3 P = (row[j-leftPixels[i].x].pos3d - lightPos) * R;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
-				if ((lightDepth + 0.005) >= lightBuffer[xLight][yLight]) {
+				// 0.005
+				if ((lightDepth) >= lightBuffer[xLight][yLight]) {
 					// Calculate the illumination
-					vec3 r = lightPos - rowPos3d[j-leftPixels[i].x];
+					vec3 r = lightPos - row[j-leftPixels[i].x].pos3d;
 					float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
 					r = r / rad;
 					float temp = dot(r, currentNormal);
@@ -392,6 +383,18 @@ void Update()
 	  R[0][0] = cos(yaw); R[0][1] = 0; R[0][2] = sin(yaw);
 		R[1][0] = 0; R[1][1] = 1; R[1][2] = 0;
 		R[2][0] = -sin(yaw); R[2][1] = 0; R[2][2] = cos(yaw);
+	}
+
+	if (keystate[SDLK_z]) {
+		//move camera left
+		vec3 temp(-0.2, 0, 0);
+		cameraPos = cameraPos + R * temp;
+	}
+
+	if (keystate[SDLK_x]) {
+		//move camera right
+		vec3 temp(0.2, 0, 0);
+		cameraPos = cameraPos + R * temp;
 	}
 
 	if( keystate[SDLK_w] ) {
