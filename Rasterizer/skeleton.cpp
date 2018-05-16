@@ -116,6 +116,10 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate 
 	} else {
 		temp = N - 1;
 	}
+
+	a.pos3d = a.pos3d * a.zinv; // Perspective correct interpolation
+	b.pos3d = b.pos3d * b.zinv;
+
 	float diff0 = b.x - a.x;
 	float step0 = diff0 / temp;
 	float diff1 = b.y - a.y;
@@ -132,9 +136,9 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate 
 		result[i].x = a.x + i * step0;
 		result[i].y = a.y + i * step1;
 		result[i].zinv = a.zinv + i * step2;
-		result[i].pos3d[0] = a.pos3d[0] + i * step3;
-		result[i].pos3d[1] = a.pos3d[1] + i * step4;
-		result[i].pos3d[2] = a.pos3d[2] + i * step5;
+		result[i].pos3d[0] = (a.pos3d[0] + i * step3) / result[i].zinv;
+		result[i].pos3d[1] = (a.pos3d[1] + i * step4) / result[i].zinv;
+		result[i].pos3d[2] = (a.pos3d[2] + i * step5) / result[i].zinv;
 	}
 }
 
@@ -223,26 +227,15 @@ vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy
 
 void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 	for (int i=0;i<leftPixels.size();++i) { // For every row
-		vector<float> rowZInv((rightPixels[i].x - leftPixels[i].x) + 1);
-		vector<vec3> rowPos3d((rightPixels[i].x - leftPixels[i].x) + 1);
+		vector<Pixel> row((rightPixels[i].x - leftPixels[i].x) + 1);
 
-		// leftPixels[i].pos3d.x = 1.0f / leftPixels[i].pos3d.x;
-		// leftPixels[i].pos3d.y = 1.0f / leftPixels[i].pos3d.y;;
-		// leftPixels[i].pos3d.z = 1.0f / leftPixels[i].pos3d.z;;
-		// rightPixels[i].pos3d.x = 1.0f / rightPixels[i].pos3d.x;
-		// rightPixels[i].pos3d.y = 1.0f / rightPixels[i].pos3d.y;
-		// rightPixels[i].pos3d.z = 1.0f / rightPixels[i].pos3d.z;
-
-		InterpolateFloat(leftPixels[i].zinv, rightPixels[i].zinv, rowZInv); // Only interpolate zinv for faster rendering
-		InterpolateGLM(leftPixels[i].pos3d, rightPixels[i].pos3d, rowPos3d); // Interpolate 3d position
+		InterpolatePixel(leftPixels[i], rightPixels[i], row); // Interpolate over the row
 		for (int j=leftPixels[i].x; j <= rightPixels[i].x; ++j) { // For every pixel in the row
-			if (rowZInv[j-leftPixels[i].x] > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
-				depthBuffer[j][leftPixels[i].y] = rowZInv[j-leftPixels[i].x];
-
-				//rowPos3d[j-leftPixels[i].x] = rowPos3d[j-leftPixels[i].x] * rowZInv[j-leftPixels[i].x];
+			if (row[j-leftPixels[i].x].zinv > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
+				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
 				// Calculate the illumination
-				vec3 r = lightPos - rowPos3d[j-leftPixels[i].x];
+				vec3 r = lightPos - row[j-leftPixels[i].x].pos3d;
 				float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
 				r = r / rad;
 				float temp = dot(r, currentNormal);
