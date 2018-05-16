@@ -12,8 +12,8 @@ using glm::mat3;
 // ----------------------------------------------------------------------------
 // GLOBAL VARIABLES
 
-const int SCREEN_WIDTH = 500;
-const int SCREEN_HEIGHT = 500;
+const int SCREEN_WIDTH = 300;
+const int SCREEN_HEIGHT = 300;
 SDL_Surface* screen;
 int t; // Time between Update()
 float yaw; // Rotation angle
@@ -392,6 +392,18 @@ void Update()
 	  R[0][0] = cos(yaw); R[0][1] = 0; R[0][2] = sin(yaw);
 		R[1][0] = 0; R[1][1] = 1; R[1][2] = 0;
 		R[2][0] = -sin(yaw); R[2][1] = 0; R[2][2] = cos(yaw);
+	}
+
+	if (keystate[SDLK_z]) {
+		//move camera left
+		vec3 temp(-0.2, 0, 0);
+		cameraPos = cameraPos + R * temp;
+	}
+
+	if (keystate[SDLK_x]) {
+		//move camera right
+		vec3 temp(0.2, 0, 0);
+		cameraPos = cameraPos + R * temp;
 	}
 
 	if( keystate[SDLK_w] ) {
