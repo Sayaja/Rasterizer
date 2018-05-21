@@ -79,8 +79,18 @@ void VertexShader(vector<Vertex>& vertices, vector<Pixel>& vertexPixels) {
 		vec3 P = (vertices[i].position - cameraPos) * R;
 		vertexPixels[i].pos3d = vertices[i].position;
 		vertexPixels[i].zinv = 1.0f / P.z;
-		vertexPixels[i].x = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
-		vertexPixels[i].y = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2);
+		float x = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
+		float y = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2);
+		if (x > 0) {
+			vertexPixels[i].x = x + 0.5;
+		} else {
+			vertexPixels[i].x = x - 0.5;
+		}
+		if (y > 0) {
+			vertexPixels[i].y = y + 0.5;
+		} else {
+			vertexPixels[i].y = y - 0.5;
+		}
 	}
 
 	vector<Pixel> inside; // Pixels inside screen
@@ -186,8 +196,18 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate 
 	float diff5 = b.pos3d[2] - a.pos3d[2];
 	float step5 = diff5 / temp;
 	for(int i=0; i<result.size(); ++i) {
-		result[i].x = a.x + i * step0;
-		result[i].y = a.y + i * step1;
+		float x = a.x + i * step0;
+		float y = a.y + i * step1;
+		if (x > 0) {
+			result[i].x = x + 0.5;
+		} else {
+			result[i].x = x - 0.5;
+		}
+		if (y > 0) {
+			result[i].y = y + 0.5;
+		} else {
+			result[i].y = y - 0.5;
+		}
 		result[i].zinv = a.zinv + i * step2;
 		result[i].pos3d[0] = (a.pos3d[0] + i * step3) / result[i].zinv;
 		result[i].pos3d[1] = (a.pos3d[1] + i * step4) / result[i].zinv;
