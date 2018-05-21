@@ -27,8 +27,8 @@ float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth for each pixel
 float lightBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth from light source for each pixel
 // vec3 lightPos(0,-0.5,-0.7); // Light source position
 // vec3 lightPower = 14.1f * vec3(1,1,1);
-vec3 lightPos(2.0f,0.0f,-6.001f);
-vec3 lightPower = 200.1f * vec3(1,1,1);
+vec3 lightPos(1.5f,0.0f,-4.001f);
+vec3 lightPower = 50.1f * vec3(1,1,1);
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 ); // Set indirect light to constant
 struct Pixel { // Information about a pixel
 int x;
@@ -245,7 +245,7 @@ void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 			if (row[j-leftPixels[i].x].zinv > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
 				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
-				vec3 P = (row[j-leftPixels[i].x].pos3d - lightPos) * R;
+				vec3 P = row[j-leftPixels[i].x].pos3d - lightPos;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
@@ -267,13 +267,13 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 			if (row[j-leftPixels[i].x].zinv >= depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
 				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
-				vec3 P = (row[j-leftPixels[i].x].pos3d - lightPos) * R;
+				vec3 P = row[j-leftPixels[i].x].pos3d - lightPos;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
 				// 0.005
-				if ((lightDepth) >= lightBuffer[xLight][yLight]) {
+				if ((lightDepth + 0.005) >= lightBuffer[xLight][yLight]) {
 					// Calculate the illumination
 					vec3 r = lightPos - row[j-leftPixels[i].x].pos3d;
 					float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
