@@ -83,8 +83,18 @@ void VertexShader(const Vertex& v, Pixel& p) { // Transform vertex from 3d -> 2d
 	//vec3 P2 = (v.position - lightPos) * R;
 	p.pos3d = v.position;
 	p.zinv = 1.0f / P.z;
-	p.x = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
-	p.y = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2);
+	float x = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
+	float y = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2);
+	if (x > 0) {
+		p.x = x + 0.5;
+	} else {
+		p.x = x - 0.5;
+	}
+	if (y > 0) {
+		p.y = y + 0.5;
+	} else {
+		p.y = y - 0.5;
+	}
 	// float lightDepth = 1 / (sqrt(P2[0]*P2[0] + P2[1]*P2[1] + P2[2]*P2[2])); // Inversed
 	// int xLight = ((focalLength * P2.x) / P2.z) + (SCREEN_WIDTH / 2);
 	// int yLight = ((focalLength * P2.y) / P2.z) + (SCREEN_WIDTH / 2);
@@ -144,8 +154,18 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate 
 	float diff5 = b.pos3d[2] - a.pos3d[2];
 	float step5 = diff5 / temp;
 	for(int i=0; i<result.size(); ++i) {
-		result[i].x = a.x + i * step0;
-		result[i].y = a.y + i * step1;
+		float x = a.x + i * step0;
+		float y = a.y + i * step1;
+		if (x > 0) {
+			result[i].x = x + 0.5;
+		} else {
+			result[i].x = x - 0.5;
+		}
+		if (y > 0) {
+			result[i].y = y + 0.5;
+		} else {
+			result[i].y = y - 0.5;
+		}
 		result[i].zinv = a.zinv + i * step2;
 		result[i].pos3d[0] = (a.pos3d[0] + i * step3) / result[i].zinv;
 		result[i].pos3d[1] = (a.pos3d[1] + i * step4) / result[i].zinv;
@@ -268,8 +288,8 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
 				vec3 P = row[j-leftPixels[i].x].pos3d - lightPos;
-				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
-				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2);
+				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2) + 0.5;
+				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_WIDTH / 2) + 0.5;
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
 				// 0.005
