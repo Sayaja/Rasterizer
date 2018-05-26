@@ -12,12 +12,13 @@ using glm::mat3;
 // ----------------------------------------------------------------------------
 // GLOBAL VARIABLES
 
-const int SCREEN_WIDTH = 500;
-const int SCREEN_HEIGHT = 500;
+const int SCREEN_WIDTH = 400;
+const int SCREEN_HEIGHT = 400;
 SDL_Surface* screen;
 int t; // Time between Update()
 float yaw; // Rotation angle
 mat3 R; // Rotation matrix
+mat3 RL;
 vector<Triangle> triangles;
 float focalLength = SCREEN_WIDTH;
 vec3 cameraPos( 0.0f, 0.0f, -3.001f );
@@ -67,6 +68,9 @@ int main( int argc, char* argv[] )
 	R[0][0] = cos(yaw); R[0][1] = 0; R[0][2] = sin(yaw);
 	R[1][0] = 0; R[1][1] = 1; R[1][2] = 0;
 	R[2][0] = -sin(yaw); R[2][1] = 0; R[2][2] = cos(yaw);
+	RL[0][0] = cos(3.14/10); RL[0][1] = 0; RL[0][2] = sin(3.14/10);
+	RL[1][0] = 0; RL[1][1] = 1; RL[1][2] = 0;
+	RL[2][0] = -sin(3.14/10); RL[2][1] = 0; RL[2][2] = cos(3.14/10);
 
 	while( NoQuitMessageSDL() )
 	{
@@ -262,18 +266,19 @@ void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 
 		InterpolatePixel(leftPixels[i], rightPixels[i], row); // Interpolate over the row
 		for (int j=leftPixels[i].x; j <= rightPixels[i].x; ++j) { // For every pixel in the row
-			if (row[j-leftPixels[i].x].zinv > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
-				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
+			//if (row[j-leftPixels[i].x].zinv > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
+				//depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
-				vec3 P = row[j-leftPixels[i].x].pos3d - lightPos;
+				vec3 P = (row[j-leftPixels[i].x].pos3d - lightPos) * RL;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2) + 0.5;
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2) + 0.5;
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
 				if (lightDepth > lightBuffer[xLight][yLight]) {
 					lightBuffer[xLight][yLight] = lightDepth;
+					PutPixelSDL(screen, xLight, yLight, currentReflectance);
 				}
-			}
+			//}
 		}
 	}
 }
@@ -287,13 +292,13 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 			if (row[j-leftPixels[i].x].zinv >= depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
 				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
-				vec3 P = row[j-leftPixels[i].x].pos3d - lightPos;
+				vec3 P = (row[j-leftPixels[i].x].pos3d - lightPos) * RL;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2) + 0.5;
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2) + 0.5;
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
 				// 0.005
-				if ((lightDepth + 0.005) >= lightBuffer[xLight][yLight]) {
+				if ((lightDepth + 0.000) >= lightBuffer[xLight][yLight]) {
 					// Calculate the illumination
 					vec3 r = lightPos - row[j-leftPixels[i].x].pos3d;
 					float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
@@ -309,11 +314,11 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 					D[2] = lightPower[2] * (temp / (4 * 3.14*rad*rad));
 					vec3 illumination = currentReflectance * (D + indirectLightPowerPerArea);
 
-					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+					//PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
 				else {
 					vec3 illumination(0,0,0);
-					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+					//PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
 
 				// if ((lightDepth - 0.001) >= lightBuffer[xLight][yLight] && lightBuffer[xLight][yLight] > 0.001) {
@@ -400,7 +405,7 @@ void Update()
 	if( keystate[SDLK_LEFT] ) {
 		//Rotate camera clockwise
 		yaw = yaw + float((3.14/16));
-	  R[0][0] = cos(yaw); R[0][1] = 0; R[0][2] = sin(yaw);
+		R[0][0] = cos(yaw); R[0][1] = 0; R[0][2] = sin(yaw);
 		R[1][0] = 0; R[1][1] = 1; R[1][2] = 0;
 		R[2][0] = -sin(yaw); R[2][1] = 0; R[2][2] = cos(yaw);
 	}
