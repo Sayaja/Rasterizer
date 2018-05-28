@@ -68,9 +68,15 @@ int main( int argc, char* argv[] )
 	R[0][0] = cos(yaw); R[0][1] = 0; R[0][2] = sin(yaw);
 	R[1][0] = 0; R[1][1] = 1; R[1][2] = 0;
 	R[2][0] = -sin(yaw); R[2][1] = 0; R[2][2] = cos(yaw);
-	RL[0][0] = cos(3.14/10); RL[0][1] = 0; RL[0][2] = sin(3.14/10);
-	RL[1][0] = 0; RL[1][1] = 1; RL[1][2] = 0;
-	RL[2][0] = -sin(3.14/10); RL[2][1] = 0; RL[2][2] = cos(3.14/10);
+	mat3 RL1;
+	mat3 RL2;
+	RL1[0][0] = cos(3.14/10); RL1[0][1] = 0; RL1[0][2] = sin(3.14/10);
+	RL1[1][0] = 0; RL1[1][1] = 1; RL1[1][2] = 0;
+	RL1[2][0] = -sin(3.14/10); RL1[2][1] = 0; RL1[2][2] = cos(3.14/10);
+	RL2[0][0] = 1; RL2[0][1] = 0; RL2[0][2] = 0;
+	RL2[1][0] = 0; RL2[1][1] = cos(3.14/16); RL2[1][2] = -sin(3.14/16);
+	RL2[2][0] = 0; RL2[2][1] = sin(3.14/16); RL2[2][2] = cos(3.14/16);
+	RL = RL1 * RL2;
 
 	while( NoQuitMessageSDL() )
 	{
@@ -266,8 +272,6 @@ void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 
 		InterpolatePixel(leftPixels[i], rightPixels[i], row); // Interpolate over the row
 		for (int j=leftPixels[i].x; j <= rightPixels[i].x; ++j) { // For every pixel in the row
-			//if (row[j-leftPixels[i].x].zinv > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
-				//depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
 				vec3 P = (row[j-leftPixels[i].x].pos3d - lightPos) * RL;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2) + 0.5;
@@ -276,9 +280,8 @@ void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 
 				if (lightDepth > lightBuffer[xLight][yLight]) {
 					lightBuffer[xLight][yLight] = lightDepth;
-					PutPixelSDL(screen, xLight, yLight, currentReflectance);
+					//PutPixelSDL(screen, xLight, yLight, currentReflectance);
 				}
-			//}
 		}
 	}
 }
@@ -314,11 +317,11 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 					D[2] = lightPower[2] * (temp / (4 * 3.14*rad*rad));
 					vec3 illumination = currentReflectance * (D + indirectLightPowerPerArea);
 
-					//PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
 				else {
 					vec3 illumination(0,0,0);
-					//PutPixelSDL(screen, j, leftPixels[i].y, illumination);
+					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
 
 				// if ((lightDepth - 0.001) >= lightBuffer[xLight][yLight] && lightBuffer[xLight][yLight] > 0.001) {
