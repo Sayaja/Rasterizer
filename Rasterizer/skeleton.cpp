@@ -29,7 +29,7 @@ float lightBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth from light sour
 //vec3 lightPos(0.0f,0.0f,-3.001f); // Light source position
 // vec3 lightPower = 14.1f * vec3(1,1,1);
 vec3 lightPos(1.5f,-0.5f,-4.001f);
-vec3 lightPower = 50.1f * vec3(1,1,1);
+vec3 lightPower = 100.1f * vec3(1,1,1);
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 ); // Set indirect light to constant
 struct Pixel { // Information about a pixel
 int x;
@@ -391,7 +391,6 @@ void ShadowMapping(vector<Pixel>& leftPixelsLight, vector<Pixel>& rightPixelsLig
 		for (int j=leftPixelsLight[i].xLight; j <= rightPixelsLight[i].xLight; ++j) { // For every pixel in the row
 			if (row[j-leftPixelsLight[i].xLight].linv >= lightBuffer[j][leftPixelsLight[i].yLight]) { // Check if the pixel is closer
 				lightBuffer[j][leftPixelsLight[i].yLight] = row[j-leftPixelsLight[i].xLight].linv;
-					//cout << j << " " << leftPixelsLight[i].yLight << endl;
 					//PutPixelSDL(screen, j, leftPixelsLight[i].yLight, currentReflectance);
 				}
 		}
@@ -413,7 +412,7 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
 
 				// 0.005
-				if ((lightDepth + 0.005) >= lightBuffer[xLight][yLight]) {
+				if ((lightDepth + 0.003) >= lightBuffer[xLight][yLight]) {
 					// Calculate the illumination
 					vec3 r = lightPos - row[j-leftPixels[i].x].pos3d;
 					float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
@@ -432,7 +431,7 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
 				else {
-					vec3 illumination(0,0,0);
+					vec3 illumination = currentReflectance * indirectLightPowerPerArea;
 					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
 			}
