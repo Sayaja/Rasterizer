@@ -17,8 +17,8 @@ const int SCREEN_HEIGHT = 400;
 SDL_Surface* screen;
 int t; // Time between Update()
 float yaw; // Rotation angle
-mat3 R; // Rotation matrix
-mat3 RL;
+mat3 R; // Camera rotation matrix
+mat3 RL; // Light source rotation matrix
 vector<Triangle> triangles;
 float focalLength = SCREEN_WIDTH;
 vec3 cameraPos( 0.0f, 0.0f, -3.001f );
@@ -26,10 +26,8 @@ vec3 currentNormal; // Normal of current triangle
 vec3 currentReflectance; // Reflectance of current triangle
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth for each pixel
 float lightBuffer[SCREEN_HEIGHT][SCREEN_WIDTH]; // Inverse depth from light source for each pixel
-//vec3 lightPos(0.0f,0.0f,-3.001f); // Light source position
-// vec3 lightPower = 14.1f * vec3(1,1,1);
-vec3 lightPos(1.5f,-0.5f,-4.001f);
-vec3 lightPower = 100.1f * vec3(1,1,1);
+vec3 lightPos(1.5f,-0.5f,-4.001f); // Light source position
+vec3 lightPower = 100.1f * vec3(1,1,1); // Light source power
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 ); // Set indirect light to constant
 struct Pixel { // Information about a pixel
 int x;
@@ -71,7 +69,7 @@ int main( int argc, char* argv[] )
 	LoadTestModel( triangles ); // Load the scene
 	screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT );
 	t = SDL_GetTicks();	// Set start value for timer.
-	// Set values for the rotation matrix
+	// Set values for the rotation matrices
 	R[0][0] = cos(yaw); R[0][1] = 0; R[0][2] = sin(yaw);
 	R[1][0] = 0; R[1][1] = 1; R[1][2] = 0;
 	R[2][0] = -sin(yaw); R[2][1] = 0; R[2][2] = cos(yaw);
@@ -99,6 +97,7 @@ void VertexShader(const Vertex& v, Pixel& p) { // Transform vertex from 3d -> 2d
 	vec3 P = (v.position - cameraPos) * R;
 	p.pos3d = v.position;
 	p.zinv = 1.0f / P.z;
+	// Transform to camera pixels
 	float x = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2);
 	float y = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2);
 	if (x > 0) {
@@ -113,6 +112,7 @@ void VertexShader(const Vertex& v, Pixel& p) { // Transform vertex from 3d -> 2d
 	}
 	vec3 P2 = (v.position - lightPos) * RL;
 	p.linv = 1 / (sqrt(P2[0]*P2[0] + P2[1]*P2[1] + P2[2]*P2[2])); // Inversed
+	// Transform to light pixels
 	float xLight = ((focalLength * P2.x) / P2.z) + (SCREEN_WIDTH / 2);
 	float yLight = ((focalLength * P2.y) / P2.z) + (SCREEN_HEIGHT / 2);
 	if (xLight > 0) {
@@ -127,7 +127,7 @@ void VertexShader(const Vertex& v, Pixel& p) { // Transform vertex from 3d -> 2d
 	}
 }
 
-void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result) { // Interolate ivec2
+void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result) { // Interpolate ivec2
 	float temp;
 	int N = result.size();
 	if (N-1 <= 1) {
@@ -153,7 +153,7 @@ void InterpolateFloat(float a, float b, vector<float>& result) { // Interpolate 
 	}
 }
 
-void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate pixels
+void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate pixels (excluding light coordinates)
 	float temp;
 	int N = result.size();
 	if (N-1 <= 1) {
@@ -197,7 +197,7 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate 
 	}
 }
 
-void InterpolatePixelLight(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate pixels
+void InterpolatePixelLight(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate (excluding camera coordinates)
 	float temp;
 	int N = result.size();
 	if (N-1 <= 1) {
@@ -264,7 +264,7 @@ void InterpolateGLM(vec3 a, vec3 b, vector<vec3>& resultGLM) { // Interpolate ve
 }
 
 void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels,
-vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy
+vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy frin the camera's pow
 // 1. Find max and min y-value of the polygon
 // and compute the number of rows it occupies.
 // 2. Resize leftPixels and rightPixels
@@ -324,18 +324,7 @@ vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy
 }
 
 void ComputePolygonRowsLight(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels,
-vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy
-// 1. Find max and min y-value of the polygon
-// and compute the number of rows it occupies.
-// 2. Resize leftPixels and rightPixels
-// so that they have an element for each row.
-// 3. Initialize the x-coordinates in leftPixels
-// to some really large value and the x-coordinates
-// in rightPixels to some really small value.
-// 4. Loop through all edges of the polygon and use
-// linear interpolation to find the x-coordinate for
-// each row it occupies. Update the corresponding
-// values in rightPixels and leftPixels.
+vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy from the light's pow
 
 	int minY = SCREEN_HEIGHT;
 	int maxY = 0;
@@ -383,15 +372,17 @@ vector<Pixel>& rightPixels) { // Find out which pixels a polygon ocupy
 	}
 }
 
-void ShadowMapping(vector<Pixel>& leftPixelsLight, vector<Pixel>& rightPixelsLight) {
-	for (int i=0;i<leftPixelsLight.size();++i) { // For every row
-		vector<Pixel> row((rightPixelsLight[i].xLight - leftPixelsLight[i].xLight) + 1);
+// Fill the lightBuffer matrix
+void ShadowMapping(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
+	for (int i=0;i<leftPixels.size();++i) { // For every row
+		vector<Pixel> row((rightPixels[i].xLight - leftPixels[i].xLight) + 1);
 
-		InterpolatePixelLight(leftPixelsLight[i], rightPixelsLight[i], row); // Interpolate over the row
-		for (int j=leftPixelsLight[i].xLight; j <= rightPixelsLight[i].xLight; ++j) { // For every pixel in the row
-			if (row[j-leftPixelsLight[i].xLight].linv >= lightBuffer[j][leftPixelsLight[i].yLight]) { // Check if the pixel is closer
-				lightBuffer[j][leftPixelsLight[i].yLight] = row[j-leftPixelsLight[i].xLight].linv;
-					//PutPixelSDL(screen, j, leftPixelsLight[i].yLight, currentReflectance);
+		InterpolatePixelLight(leftPixels[i], rightPixels[i], row); // Interpolate over the row
+		for (int j=leftPixels[i].xLight; j <= rightPixels[i].xLight; ++j) { // For every pixel in the row
+			if (row[j-leftPixels[i].xLight].linv >= lightBuffer[j][leftPixels[i].yLight]) { // Check if the pixel is closer
+				lightBuffer[j][leftPixels[i].yLight] = row[j-leftPixels[i].xLight].linv;
+				// Comment in this to see the scene from the light's pow
+				//PutPixelSDL(screen, j, leftPixelsLight[i].yLight, currentReflectance);
 				}
 		}
 	}
@@ -409,10 +400,10 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 				vec3 P = (row[j-leftPixels[i].x].pos3d - lightPos) * RL;
 				int xLight = ((focalLength * P.x) / P.z) + (SCREEN_WIDTH / 2) + 0.5;
 				int yLight = ((focalLength * P.y) / P.z) + (SCREEN_HEIGHT / 2) + 0.5;
-				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2]));
+				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2])); // Inverse distance
 
 				// 0.005
-				if ((lightDepth + 0.003) >= lightBuffer[xLight][yLight]) {
+				if ((lightDepth + 0.003) >= lightBuffer[xLight][yLight]) { // Check if it's visible from the light
 					// Calculate the illumination
 					vec3 r = lightPos - row[j-leftPixels[i].x].pos3d;
 					float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
@@ -452,6 +443,7 @@ void DrawPolygon(const vector<Vertex>& vertices) {
 	DrawPolygonRows( leftPixels, rightPixels );
 }
 
+// Draw the shadow map
 void DrawPolygonLight(const vector<Vertex>& vertices) {
 	int V = vertices.size();
 	vector<Pixel> vertexPixels( V );
@@ -559,6 +551,7 @@ void Draw()
 		}
 	}
 
+	// First draw the shadow map and fill the lightBuffer matrix
 	for( int i=0; i<triangles.size(); ++i )
 	{
 		currentNormal = triangles[i].normal;
@@ -572,6 +565,7 @@ void Draw()
 		DrawPolygonLight(vertices);
 	}
 
+	// Then draw the scene from the camera's pow
 	for( int i=0; i<triangles.size(); ++i )
 	{
 		currentNormal = triangles[i].normal;
