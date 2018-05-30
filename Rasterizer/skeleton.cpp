@@ -194,8 +194,6 @@ void InterpolatePixel(Pixel a, Pixel b, vector<Pixel>& result) { // Interpolate 
 		result[i].pos3d[0] = (a.pos3d[0] + i * step3) / result[i].zinv;
 		result[i].pos3d[1] = (a.pos3d[1] + i * step4) / result[i].zinv;
 		result[i].pos3d[2] = (a.pos3d[2] + i * step5) / result[i].zinv;
-<<<<<<< HEAD
-=======
 	}
 }
 
@@ -240,7 +238,6 @@ void InterpolatePixelLight(Pixel a, Pixel b, vector<Pixel>& result) { // Interpo
 		result[i].pos3d[0] = (a.pos3d[0] + i * step3) / result[i].linv;
 		result[i].pos3d[1] = (a.pos3d[1] + i * step4) / result[i].linv;
 		result[i].pos3d[2] = (a.pos3d[2] + i * step5) / result[i].linv;
->>>>>>> shadowMapping2.0
 	}
 }
 
@@ -397,25 +394,6 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 
 		InterpolatePixel(leftPixels[i], rightPixels[i], row); // Interpolate over the row
 		for (int j=leftPixels[i].x; j <= rightPixels[i].x; ++j) { // For every pixel in the row
-<<<<<<< HEAD
-			if (row[j-leftPixels[i].x].zinv > depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
-				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
-
-				// Calculate the illumination
-				vec3 r = lightPos - row[j-leftPixels[i].x].pos3d;
-				float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
-				r = r / rad;
-				float temp = dot(r, currentNormal);
-				if (temp < 0)
-				{
-					temp = 0;
-				}
-				vec3 D;
-				D[0] = lightPower[0] * (temp / (4 * 3.14*rad*rad));
-				D[1] = lightPower[1] * (temp / (4 * 3.14*rad*rad));
-				D[2] = lightPower[2] * (temp / (4 * 3.14*rad*rad));
-				vec3 illumination = currentReflectance * (D + indirectLightPowerPerArea);
-=======
 			if (row[j-leftPixels[i].x].zinv >= depthBuffer[j][leftPixels[i].y]) { // Check if the pixel is closer
 				depthBuffer[j][leftPixels[i].y] = row[j-leftPixels[i].x].zinv;
 
@@ -425,7 +403,7 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 				float lightDepth = 1.0f / (sqrt(P[0]*P[0] + P[1]*P[1] + P[2]*P[2])); // Inverse distance
 
 				// 0.005
-				if ((lightDepth + 0.003) >= lightBuffer[xLight][yLight]) { // Check if it's visible from the light
+				if ((lightDepth + 0.005) >= lightBuffer[xLight][yLight]) { // Check if it's visible from the light
 					// Calculate the illumination
 					vec3 r = lightPos - row[j-leftPixels[i].x].pos3d;
 					float rad = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
@@ -440,7 +418,6 @@ void DrawPolygonRows(vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
 					D[1] = lightPower[1] * (temp / (4 * 3.14*rad*rad));
 					D[2] = lightPower[2] * (temp / (4 * 3.14*rad*rad));
 					vec3 illumination = currentReflectance * (D + indirectLightPowerPerArea);
->>>>>>> shadowMapping2.0
 
 					PutPixelSDL(screen, j, leftPixels[i].y, illumination);
 				}
